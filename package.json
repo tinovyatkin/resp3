@@ -1,0 +1,27 @@
+{
+  "name": "resp3",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "type": "module",
+  "scripts": {
+    "test": "jest"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/tinovyatkin/resp3.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/tinovyatkin/resp3/issues"
+  },
+  "homepage": "https://github.com/tinovyatkin/resp3#readme",
+  "devDependencies": {
+    "eslint": "7.0.0",
+    "eslint-config-prettier": "6.11.0",
+    "jest": "26.0.1",
+    "prettier": "2.0.5"
+  }
+}
