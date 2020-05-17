@@ -1,6 +1,9 @@
 import { createConnection } from 'net';
 import { Transform } from 'stream';
 
+/**
+ * Writable stream to write into Redis served stream
+ */
 export class RedisWritableStream extends Transform {
   #streamName;
   #host;
