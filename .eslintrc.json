@@ -1,16 +1,18 @@
 {
-  "env": {
-    "es6": true,
-    "node": true
-  },
-  "extends": ["eslint:recommended", "config-prettier"],
-  "globals": {
-    "Atomics": "readonly",
-    "SharedArrayBuffer": "readonly"
-  },
+  // ESLint 7.x is not understanding private class field, so, need better parser
+  "parser": "@typescript-eslint/parser",
   "parserOptions": {
     "ecmaVersion": 2020,
     "sourceType": "module"
   },
-  "rules": {}
+  "env": {
+    "es6": true,
+    "node": true
+  },
+  "extends": ["eslint:recommended", "prettier"],
+  "plugins": ["import"],
+  "rules": {
+    "import/no-commonjs": "error",
+    "import/extensions": ["error", "always"]
+  }
 }
