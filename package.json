@@ -26,7 +26,6 @@
     "eslint-config-prettier": "6.11.0",
     "eslint-plugin-import": "2.20.2",
     "mocha": "7.1.2",
-    "prettier": "2.0.5",
-    "typescript": "3.9.2"
+    "prettier": "2.0.5"
   }
 }
