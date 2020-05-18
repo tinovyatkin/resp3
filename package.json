@@ -20,7 +20,7 @@
   "homepage": "https://github.com/tinovyatkin/resp3#readme",
   "devDependencies": {
     "@types/node": "14.0.1",
-    "@typescript-eslint/parser": "2.33.0",
+    "@typescript-eslint/parser": "2.34.0",
     "c8": "7.1.2",
     "eslint": "7.0.0",
     "eslint-config-prettier": "6.11.0",
