@@ -12,6 +12,8 @@ export class RedisReadableStream extends Transform {
   #username;
   /** @type {import('net').Socket} */
   #socket;
+  /** Client ID on Redis for unblocking */
+  #clientId;
   #consumerGroup;
   #consumerName;
   /**
@@ -62,30 +64,7 @@ export class RedisReadableStream extends Transform {
       port: this.#port,
     })
       .setEncoding('utf8')
-      .once('connect', () => {
-        this.#socket.setKeepAlive(true);
-        // plumbing ourself into socket
-        this.#socket.pipe(this);
-
-        // send 'HELLO 3 AUTH username password' command
-        // https://github.com/antirez/RESP3/blob/master/spec.md#the-hello-command-and-connection-handshake
-        this.#socket.write(
-          `HELLO 3${
-            this.#password ? ` AUTH ${this.#username} ${this.#password}}` : ''
-          }\r\n`
-        ); // <- 3 is protocol version here, RESP3
-      })
-      .once('ready', () => {
-        // https://redis.io/topics/streams-intro#creating-a-consumer-group
-        this.#socket.write(
-          `XGROUP CREATE ${this.#streamName} ${
-            this.#consumerGroup
-          } $ MKSTREAM\r\n`
-        );
-        this.emit('connect', this.#socket);
-        // and start reading in blocking mode with infinite timeout, only new messages
-        this.#socket.once('data', () => this._readMore());
-      })
+      .setKeepAlive(true)
       // re-emit errors
       .on('data', (data) => {
         if (data.startsWith('-ERR'))
@@ -95,6 +74,39 @@ export class RedisReadableStream extends Transform {
       // auto reconnect
       .once('end', () => {
         if (this.autoReconnect) this._connect();
+      })
+      .once('ready', async () => {
+        // send 'HELLO 3 AUTH username password' command
+        // https://github.com/antirez/RESP3/blob/master/spec.md#the-hello-command-and-connection-handshake
+        this.#socket.write(
+          `HELLO 3${
+            this.#password ? ` AUTH ${this.#username} ${this.#password}}` : ''
+          }\r\n`
+        ); // <- 3 is protocol version here, RESP3
+        await once(this.#socket, 'data');
+
+        // Get out client id for unblocking
+        this.#socket.write(`CLIENT ID\r\n`);
+        const [clientId] = await once(this.#socket, 'data'); // it will be number like :440
+        this.#clientId = parseInt(
+          /^:(?<id>\d+)/.exec(clientId)?.groups?.id,
+          10
+        );
+
+        // Create group
+        // https://redis.io/topics/streams-intro#creating-a-consumer-group
+        this.#socket.write(
+          `XGROUP CREATE ${this.#streamName} ${
+            this.#consumerGroup
+          } $ MKSTREAM\r\n`
+        );
+
+        // plumbing ourself into socket
+        this.#socket.pipe(this);
+        this.emit('connect', this.#socket);
+
+        // and start reading in blocking mode with infinite timeout, only new messages
+        this.#socket.once('data', () => this._readMore());
       });
   }
 
@@ -173,25 +185,39 @@ export class RedisReadableStream extends Transform {
     setImmediate(callback);
   }
 
-  _destroy() {
+  _destroy(error, callback) {
     this.autoReconnect = false;
     if (!this.#socket || this.#socket.destroyed) return;
-    // sending QUIT command
-    this.#socket.write('QUIT\r\n');
-    this.#socket.unref();
+    // unblocking out client from another connection
+    if (Number.isInteger(this.#clientId)) {
+      const unblockingSocket = createConnection({
+        host: this.#host,
+        port: this.#port,
+      })
+        .setEncoding('utf-8')
+        .once('ready', () => {
+          unblockingSocket.write(`CLIENT UNBLOCK ${this.#clientId}\r\n`);
+        })
+        .once('data', () => {
+          unblockingSocket.write(`QUIT\r\n`);
+        });
+    }
+
     // gracefully shutdown
     Promise.race([
       once(this.#socket, 'data'),
       once(this.#socket, 'error'),
       once(this.#socket, 'timeout'),
-      new Promise((resolve) => setTimeout(resolve, 1000)),
     ])
       .then(() => {
-        this.#socket.destroy();
+        // sending QUIT command
+        this.#socket.write('QUIT\r\n');
         super.destroy();
+        setImmediate(callback);
       })
       .catch((err) => {
         this.emit('error', err);
+        callback(err);
       });
   }
 }

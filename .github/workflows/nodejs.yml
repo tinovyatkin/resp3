@@ -5,19 +5,18 @@ name: Node.js CI
 
 on:
   push:
-    branches: [ master ]
+    branches: [master]
   pull_request:
-    branches: [ master ]
+    branches: [master]
 
 jobs:
   build:
-
     runs-on: ubuntu-latest
     services:
       redis:
         image: redis:6
         ports:
-        - 6379:6379
+          - 6379:6379
         options: --entrypoint redis-server
 
     strategy:
@@ -25,11 +24,11 @@ jobs:
         node-version: [14.x]
 
     steps:
-    - uses: actions/checkout@v2
-    - name: Use Node.js ${{ matrix.node-version }}
-      uses: actions/setup-node@v1
-      with:
-        node-version: ${{ matrix.node-version }}
-    - run: npm ci
-    - run: npx c8 mocha
-    - uses: codecov/codecov-action@v1
+      - uses: actions/checkout@v2
+      - name: Use Node.js ${{ matrix.node-version }}
+        uses: actions/setup-node@v1
+        with:
+          node-version: ${{ matrix.node-version }}
+      - run: npm ci
+      - run: npx c8 --reporter=lcov mocha
+      - uses: codecov/codecov-action@v1
