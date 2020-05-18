@@ -2,6 +2,3 @@ coverage:
   parsers:
     javascript:
       enable_partials: yes
-
-fixes:
-  - file:///*/resp3/::resp3/
