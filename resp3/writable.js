@@ -31,7 +31,9 @@ export class RedisWritableStream extends Transform {
     password,
     username = 'default'
   ) {
-    super({ writableHighWaterMark: 16, writableObjectMode: true });
+    super({
+      objectMode: true,
+    });
     this.#streamName = streamName;
     this.#host = host;
     this.#port = port;
@@ -94,10 +96,11 @@ export class RedisWritableStream extends Transform {
         `*${cmd.length}`,
         // convert all into blob strings
         ...cmd.flatMap((v) => [`$${Buffer.byteLength(v)}`, v]),
+        '',
       ].join('\r\n')
     );
 
-    callback();
+    setImmediate(callback);
   }
 
   _destroy() {
