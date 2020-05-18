@@ -12,7 +12,21 @@
   "extends": ["eslint:recommended", "prettier"],
   "plugins": ["import"],
   "rules": {
+    "no-empty": [
+      "error",
+      {
+        "allowEmptyCatch": true
+      }
+    ],
     "import/no-commonjs": "error",
     "import/extensions": ["error", "always"]
-  }
+  },
+  "overrides": [
+    {
+      "files": ["*.test.js", "test/**.js"],
+      "env": {
+        "mocha": true
+      }
+    }
+  ]
 }

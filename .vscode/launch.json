@@ -6,14 +6,13 @@
   "configurations": [
     {
       "type": "node",
-      "name": "vscode-jest-tests",
+      "runtimeVersion": "14.2.0",
       "request": "launch",
-      "args": ["--runInBand"],
-      "cwd": "${workspaceFolder}",
-      "console": "integratedTerminal",
-      "internalConsoleOptions": "neverOpen",
-      "disableOptimisticBPs": true,
-      "program": "${workspaceFolder}/node_modules/jest/bin/jest"
+      "name": "Mocha Tests",
+      "program": "${workspaceFolder}/node_modules/mocha/bin/_mocha",
+      "args": ["--timeout", "999999", "--colors", "${workspaceFolder}/test"],
+      "internalConsoleOptions": "openOnSessionStart",
+      "skipFiles": ["<node_internals>/**"]
     },
     {
       "type": "node",
