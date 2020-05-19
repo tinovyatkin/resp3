@@ -1,5 +1,5 @@
 import { createConnection } from 'net';
-import { Transform, pipeline } from 'stream';
+import { Transform } from 'stream';
 
 /**
  * Writable stream to write into Redis served stream
@@ -52,13 +52,7 @@ export class RedisWritableStream extends Transform {
       .setEncoding('utf8')
       .once('connect', () => {
         // plumbing ourself into socket
-        pipeline(this, this.#socket, (err) => {
-          if (err) this.emit('error', err);
-          else {
-            this.autoReconnect = false;
-            this.#socket.end(`QUIT\r\n`);
-          }
-        });
+        this.pipe(this.#socket);
 
         // send 'HELLO 3 AUTH username password' command
         // https://github.com/antirez/RESP3/blob/master/spec.md#the-hello-command-and-connection-handshake

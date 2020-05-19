@@ -101,9 +101,7 @@ export class RedisReadableStream extends Transform {
         );
 
         // plumbing ourself into socket
-        pipeline(this.#socket, this, (err) => {
-          if (err) this.emit('error', err);
-        });
+        this.#socket.pipe(this, { end: false });
 
         this.once('end', () => {
           this.autoReconnect = false;
@@ -196,17 +194,15 @@ export class RedisReadableStream extends Transform {
     if (!this.#socket || this.#socket.destroyed) return;
     // unblocking out client from another connection
     if (Number.isInteger(this.#clientId)) {
-      const unblockingSocket = createConnection({
+      const control = createConnection({
         host: this.#host,
         port: this.#port,
       })
         .setEncoding('utf-8')
-        .once('ready', () => {
-          unblockingSocket.write(`CLIENT UNBLOCK ${this.#clientId}\r\n`);
-        })
-        .once('data', () => {
-          unblockingSocket.end(`QUIT\r\n`);
-        });
+        .once('ready', () =>
+          control.write(`CLIENT UNBLOCK ${this.#clientId}\r\n`)
+        )
+        .once('data', () => control.end(`QUIT\r\n`));
     }
 
     // gracefully shutdown
