@@ -33,6 +33,7 @@ export class RedisWritableStream extends Transform {
   ) {
     super({
       objectMode: true,
+      writableHighWaterMark: 1,
     });
     this.#streamName = streamName;
     this.#host = host;

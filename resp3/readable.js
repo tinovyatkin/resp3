@@ -43,7 +43,7 @@ export class RedisReadableStream extends Transform {
   ) {
     super({
       objectMode: true,
-      // highWaterMark: 128,
+      readableHighWaterMark: 10,
     });
     this.#consumerGroup = consumerGroup;
     this.#consumerName = consumerName;
