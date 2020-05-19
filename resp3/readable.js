@@ -2,7 +2,7 @@ import { createConnection } from 'net';
 import { hostname, userInfo } from 'os';
 import { once } from 'events';
 import { createHash } from 'crypto';
-import { Transform } from 'stream';
+import { Transform, pipeline } from 'stream';
 
 export class RedisReadableStream extends Transform {
   #streamName;
@@ -43,8 +43,7 @@ export class RedisReadableStream extends Transform {
   ) {
     super({
       objectMode: true,
-      highWaterMark: 16,
-      readableHighWaterMark: 1000,
+      // highWaterMark: 128,
     });
     this.#consumerGroup = consumerGroup;
     this.#consumerName = consumerName;
@@ -102,8 +101,14 @@ export class RedisReadableStream extends Transform {
         );
 
         // plumbing ourself into socket
-        this.#socket.pipe(this);
-        this.emit('connect', this.#socket);
+        pipeline(this.#socket, this, (err) => {
+          if (err) this.emit('error', err);
+        });
+
+        this.once('end', () => {
+          this.autoReconnect = false;
+          this.#socket.end('QUIT\r\n');
+        }).emit('connect', this.#socket);
 
         // and start reading in blocking mode with infinite timeout, only new messages
         this.#socket.once('data', () => this._readMore());
@@ -116,13 +121,11 @@ export class RedisReadableStream extends Transform {
       this.once('connect', () => this._readMore());
       return;
     }
-    setImmediate(() => {
-      this.#socket.write(
-        `XREADGROUP GROUP ${this.#consumerGroup} ${
-          this.#consumerName
-        } BLOCK 0 COUNT 1 STREAMS ${this.#streamName} >\r\n`
-      );
-    });
+    this.#socket.write(
+      `XREADGROUP GROUP ${this.#consumerGroup} ${
+        this.#consumerName
+      } BLOCK 0 COUNT 1 STREAMS ${this.#streamName} >\r\n`
+    );
   }
 
   _transform(data, encoding, callback) {
@@ -155,6 +158,7 @@ export class RedisReadableStream extends Transform {
         );
       return false;
     });
+
     // as we are reading by 1 message always, then we can use optimized parsing
     // length of [field, value] array is at #5
     const msg = /^\*(?<len>\d+)$/.exec(chunk[5]);
@@ -180,9 +184,11 @@ export class RedisReadableStream extends Transform {
           })
       );
       this.push(obj);
-      this._readMore();
     }
     setImmediate(callback);
+    setImmediate(() => {
+      this._readMore();
+    });
   }
 
   _destroy(error, callback) {
@@ -199,7 +205,7 @@ export class RedisReadableStream extends Transform {
           unblockingSocket.write(`CLIENT UNBLOCK ${this.#clientId}\r\n`);
         })
         .once('data', () => {
-          unblockingSocket.write(`QUIT\r\n`);
+          unblockingSocket.end(`QUIT\r\n`);
         });
     }
 
@@ -211,13 +217,12 @@ export class RedisReadableStream extends Transform {
     ])
       .then(() => {
         // sending QUIT command
-        this.#socket.write('QUIT\r\n');
+        this.#socket.end('QUIT\r\n');
         super.destroy();
         setImmediate(callback);
       })
       .catch((err) => {
-        this.emit('error', err);
-        callback(err);
+        callback();
       });
   }
 }
