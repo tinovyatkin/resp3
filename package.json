@@ -26,7 +26,7 @@
     "@typescript-eslint/parser": "3.7.1",
     "c8": "7.3.4",
     "eslint": "7.11.0",
-    "eslint-config-prettier": "6.11.0",
+    "eslint-config-prettier": "7.0.0",
     "eslint-plugin-import": "2.22.0",
     "ioredis": "4.19.1",
     "mocha": "8.2.0",
