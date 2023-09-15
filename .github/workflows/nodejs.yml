@@ -31,4 +31,4 @@ jobs:
           node-version: ${{ matrix.node-version }}
       - run: npm ci
       - run: npx c8 --reporter=lcov mocha
-      - uses: codecov/codecov-action@v2
+      - uses: codecov/codecov-action@v3
